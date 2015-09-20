@@ -1,7 +1,8 @@
 CFLAGS=-c -g -O0 -Wall -Wextra -pedantic -fPIC -std=gnu99
-LDFLAGS=-lpthread
-SOURCES=network.c client.c server.c
+LDFLAGS=-L. -lebnlib -lpthread
+SOURCES=ebnlib.c client.c server.c
 OBJECTS=$(SOURCES:.c=.o)
+LIBRARY=libebnlib.a
 CC=gcc
 
 ifeq ($(COVERAGE),1)
@@ -9,23 +10,23 @@ ifeq ($(COVERAGE),1)
 	LDFLAGS += --coverage
 endif
 
-all: $(SOURCES) network client server
+all: $(SOURCES) ebnlib client server
 
 .c.o:
 	$(CC) $(CFLAGS) $< -o $@
 
-network: $(OBJECTS)
-	ar rcs $@.a network.o
+ebnlib: $(OBJECTS)
+	ar rcs $(LIBRARY) ebnlib.o
 
 client: $(OBJECTS)
-	$(CC) -o $@ client.o network.a $(LDFLAGS)
+	$(CC) -o $@ client.o $(LDFLAGS)
 
 server: $(OBJECTS)
-	$(CC) -o $@ server.o network.a $(LDFLAGS)
+	$(CC) -o $@ server.o $(LDFLAGS)
 
 lcov:
-	lcov -d . --capture --output-file network.info
-	genhtml -o lcov network.info
+	lcov -d . --capture --output-file ebnlib.info
+	genhtml -o lcov ebnlib.info
 
 clean:
 	rm -f *.a *.o *.gcno *.gcda *.info client server

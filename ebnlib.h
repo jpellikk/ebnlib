@@ -1,5 +1,5 @@
-#ifndef _NETWORK_H
-#define _NETWORK_H
+#ifndef _EBNLIB_H
+#define _EBNLIB_H
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -76,4 +76,4 @@ ssize_t connection_sendto(connection_t connection, const void *data, size_t len,
 }
 #endif
 
-#endif /* _NETWORK_H */
+#endif /* _EBNLIB_H */
