@@ -68,6 +68,7 @@ int32_t network_stop(network_t network);
 int32_t connection_create(connection_t *connection, const struct connection_attr_t *attr);
 int32_t connection_free(connection_t connection);
 int32_t connection_close(connection_t connection);
+ssize_t connection_sendmsg(connection_t connection, const struct msghdr *msg);
 ssize_t connection_send(connection_t connection, const void *data, size_t len);
 ssize_t connection_sendto(connection_t connection, const void *data, size_t len,
                           const struct sockaddr *dest_addr, socklen_t addrlen);
