@@ -163,6 +163,18 @@ int32_t connection_close(connection_t connection)
 	return close(_connection->socket);
 }
 
+ssize_t connection_sendmsg(connection_t connection, const struct msghdr *msg)
+{
+	ssize_t s = sendmsg(_connection->socket, msg, 0);
+
+	if (s == -1) {
+		perror("sendmsg()");
+		return -1;
+	}
+
+	return s;
+}
+
 ssize_t connection_send(connection_t connection, const void *data, size_t len)
 {
 	ssize_t s = send(_connection->socket, data, len, 0);
@@ -448,9 +460,11 @@ static void *network_eventloop(void *args)
 						struct sockaddr_storage in_addr;
 						socklen_t in_len = sizeof(in_addr);
 						/* Structure in_addr is ignored with connection-oriented sockets */
-						ssize_t count = recvfrom(connection->socket, network->attr.data_buffer,
-						                         network->attr.buffer_len, 0,
-						                         (struct sockaddr *)&in_addr, &in_len);
+						ssize_t count = (connection->socktype == SOCK_SEQPACKET) ?
+						                recvmsg(connection->socket, network->attr.data_buffer, 0) :
+						                recvfrom(connection->socket, network->attr.data_buffer,
+						                         network->attr.buffer_len, 0, (struct sockaddr *)
+						                         &in_addr, &in_len);
 
 						if (count == -1) {
 							/* Closed by the user? */
