@@ -1,4 +1,4 @@
-#include "network.h"
+#include "ebnlib.h"
 
 #include <stdio.h>
 #include <unistd.h>
