@@ -1,0 +1,13 @@
+server
+client
+.cproject
+.project
+*.info
+lcov/
+*~
+*.swp
+*.gcda
+*.gcno
+*.orig
+*.a
+*.o
