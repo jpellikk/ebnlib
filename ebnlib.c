@@ -424,6 +424,7 @@ static void *network_eventloop(void *args)
 
 						if (ptr == NULL) {
 							perror("malloc()");
+							close(socket);
 							break;
 						}
 
@@ -432,6 +433,7 @@ static void *network_eventloop(void *args)
 						ptr->socket = socket;
 
 						if (network_socket_non_blocking(ptr->socket) == -1) {
+							close(socket);
 							free(ptr);
 							break;
 						}
@@ -442,6 +444,7 @@ static void *network_eventloop(void *args)
 						if (epoll_ctl(network->epoll_fd, EPOLL_CTL_ADD,
 						              ptr->socket, &event) == -1) {
 							perror("epoll_ctl()");
+							close(socket);
 							free(ptr);
 							break;
 						}
