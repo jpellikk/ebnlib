@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2015 Jani Pellikka <jpellikk@users.noreply.github.com>
+ */
 #ifndef _EBNLIB_H
 #define _EBNLIB_H
 

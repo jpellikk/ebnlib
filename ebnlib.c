@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2015 Jani Pellikka <jpellikk@users.noreply.github.com>
+ */
 #include "ebnlib.h"
 
 #include <stdio.h>
