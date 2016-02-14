@@ -382,6 +382,11 @@ static void *network_eventloop(void *args)
 				close(connection->socket);
 				network_event.event_type = network_event_connection_error;
 				network->attr.event_cb((connection_t)connection, &network_event);
+			} else if (events[i].events & EPOLLRDHUP) {
+				/* Remote host closed the connection */
+				close(connection->socket);
+				network_event.event_type = network_event_connection_closed;
+				network->attr.event_cb((network_t)connection, &network_event);
 			} else if (events[i].events & EPOLLOUT) {
 				/* Outgoing connection succeeded */
 				event.events = EPOLLIN | EPOLLET;
@@ -441,7 +446,7 @@ static void *network_eventloop(void *args)
 							break;
 						}
 
-						event.events = EPOLLIN | EPOLLET;
+						event.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
 						event.data.ptr = ptr;
 
 						if (epoll_ctl(network->epoll_fd, EPOLL_CTL_ADD,
