@@ -1,4 +1,4 @@
-CFLAGS=-c -g -O0 -Wall -Wextra -pedantic -fPIC -std=gnu99
+CFLAGS=-c -g -O0 -Wall -Wextra -pedantic -fPIC -std=gnu99 -DDEBUG
 LDFLAGS=-L. -lebnlib -lpthread
 SOURCES=ebnlib.c client.c server.c
 OBJECTS=$(SOURCES:.c=.o)

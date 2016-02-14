@@ -16,6 +16,14 @@
 #define _network ((struct network_data_t *)network)
 #define _connection ((struct connection_data_t *)connection)
 
+#ifdef DEBUG
+#define _fprintf(...) do { fprintf(__VA_ARGS__); } while(0)
+#define _perror(x) do { perror((x)); } while(0)
+#else
+#define _fprintf(...) do { } while(0)
+#define _perror(x) do { } while(0)
+#endif
+
 struct connection_data_t {
 	connection_mode_e mode;
 	int32_t socktype;
@@ -43,7 +51,7 @@ int32_t network_create(network_t *network, const struct network_attr_t *attr)
 	ptr = malloc(sizeof(*ptr));
 
 	if (ptr == NULL) {
-		perror("malloc()");
+		_perror("malloc()");
 		return -1;
 	}
 
@@ -51,7 +59,7 @@ int32_t network_create(network_t *network, const struct network_attr_t *attr)
 	ptr->epoll_fd = epoll_create1(0);
 
 	if (ptr->epoll_fd == -1) {
-		perror("epoll_create1()");
+		_perror("epoll_create1()");
 		free(ptr);
 		return -1;
 	}
@@ -82,14 +90,14 @@ int32_t network_start(network_t network)
 	if (_network->attr.mode == network_mode_thread) {
 		if (pthread_create(&_network->thread, NULL,
 		                   network_eventloop, _network)) {
-			perror("pthread_create()");
+			_perror("pthread_create()");
 			return -1;
 		}
 	} else if (_network->attr.mode == network_mode_mainloop) {
 		/* Blocks execution until interrupted */
 		network_eventloop(_network);
 	} else {
-		fprintf(stderr, "Unsupported network mode.");
+		_fprintf(stderr, "Unsupported network mode.");
 		return -1;
 	}
 
@@ -107,7 +115,7 @@ int32_t network_stop(network_t network)
 	}
 
 	if (pthread_join(_network->thread, NULL)) {
-		perror("pthread_join()");
+		_perror("pthread_join()");
 		return -1;
 	}
 
@@ -123,7 +131,7 @@ int32_t connection_create(connection_t *connection,
 	ptr = malloc(sizeof(*ptr));
 
 	if (ptr == NULL) {
-		perror("malloc()");
+		_perror("malloc()");
 		return -1;
 	}
 
@@ -145,7 +153,7 @@ int32_t connection_create(connection_t *connection,
 
 	if (epoll_ctl(network->epoll_fd, EPOLL_CTL_ADD,
 	              ptr->socket, &event) == -1) {
-		perror("epoll_ctl()");
+		_perror("epoll_ctl()");
 		free(ptr);
 		return -1;
 	}
@@ -171,7 +179,7 @@ ssize_t connection_sendmsg(connection_t connection, const struct msghdr *msg)
 	ssize_t s = sendmsg(_connection->socket, msg, 0);
 
 	if (s == -1) {
-		perror("sendmsg()");
+		_perror("sendmsg()");
 		return -1;
 	}
 
@@ -183,7 +191,7 @@ ssize_t connection_send(connection_t connection, const void *data, size_t len)
 	ssize_t s = send(_connection->socket, data, len, 0);
 
 	if (s == -1) {
-		perror("send()");
+		_perror("send()");
 		return -1;
 	}
 
@@ -196,7 +204,7 @@ ssize_t connection_sendto(connection_t connection, const void *data, size_t len,
 	ssize_t s = sendto(_connection->socket, data, len, 0, dest_addr, addrlen);
 
 	if (s == -1) {
-		perror("sendto()");
+		_perror("sendto()");
 		return -1;
 	}
 
@@ -210,7 +218,7 @@ static int32_t network_ipc_create(struct network_data_t *network)
 	conn = malloc(sizeof(*conn));
 
 	if (conn == NULL) {
-		perror("malloc()");
+		_perror("malloc()");
 		return -1;
 	}
 
@@ -218,7 +226,7 @@ static int32_t network_ipc_create(struct network_data_t *network)
 	conn->socket = eventfd(0, EFD_NONBLOCK);
 
 	if (conn->socket == -1) {
-		perror("eventfd()");
+		_perror("eventfd()");
 		free(conn);
 		return -1;
 	}
@@ -228,7 +236,7 @@ static int32_t network_ipc_create(struct network_data_t *network)
 
 	if (epoll_ctl(network->epoll_fd, EPOLL_CTL_ADD,
 	              conn->socket, &event) == -1) {
-		perror("epoll_ctl()");
+		_perror("epoll_ctl()");
 		free(conn);
 		return -1;
 	}
@@ -243,7 +251,7 @@ static int32_t network_socket_create(struct connection_data_t *connection, const
 	int32_t s = getaddrinfo(attr->hostname, attr->service, &attr->hints, &result);
 
 	if (s != 0) {
-		fprintf(stderr, "getaddrinfo(): %s\n", gai_strerror(s));
+		_fprintf(stderr, "getaddrinfo(): %s\n", gai_strerror(s));
 		return -1;
 	}
 
@@ -264,7 +272,7 @@ static int32_t network_socket_create(struct connection_data_t *connection, const
 		} else if (attr->mode == connection_mode_server) {
 			s = network_socket_bind(connection->socket, result);
 		} else {
-			fprintf(stderr, "Unsupported connection mode.");
+			_fprintf(stderr, "Unsupported connection mode.");
 			s = -1;
 		}
 
@@ -277,7 +285,7 @@ static int32_t network_socket_create(struct connection_data_t *connection, const
 	}
 
 	if (rp == NULL) {
-		fprintf(stderr, "Creating socket failed.\n");
+		_fprintf(stderr, "Creating socket failed.\n");
 		freeaddrinfo(result);
 		return -1;
 	}
@@ -291,7 +299,7 @@ static int32_t network_socket_connect(int32_t socket, struct addrinfo *result)
 	/* TODO: add possibility to bind to a source port */
 	if (connect(socket, result->ai_addr, result->ai_addrlen) == -1) {
 		if (errno != EINPROGRESS) {
-			perror("connect()");
+			_perror("connect()");
 			return -1;
 		}
 	}
@@ -302,7 +310,7 @@ static int32_t network_socket_connect(int32_t socket, struct addrinfo *result)
 static int32_t network_socket_bind(int32_t socket, struct addrinfo *result)
 {
 	if (bind(socket, result->ai_addr, result->ai_addrlen) == -1) {
-		perror("bind()");
+		_perror("bind()");
 		return -1;
 	}
 
@@ -313,7 +321,7 @@ static int32_t network_socket_bind(int32_t socket, struct addrinfo *result)
 	}
 
 	if (listen(socket, SOMAXCONN) == -1) {
-		perror("listen()");
+		_perror("listen()");
 		return -1;
 	}
 
@@ -325,12 +333,12 @@ static int32_t network_socket_non_blocking(int32_t socket)
 	int32_t flags = fcntl(socket, F_GETFL, 0);
 
 	if (flags == -1) {
-		perror("fcntl()");
+		_perror("fcntl()");
 		return -1;
 	}
 
 	if (fcntl(socket, F_SETFL, flags | O_NONBLOCK) == -1) {
-		perror("fcntl()");
+		_perror("fcntl()");
 		return -1;
 	}
 
@@ -347,7 +355,7 @@ static void *network_eventloop(void *args)
 	events = calloc(SOMAXCONN, sizeof(event));
 
 	if (events == NULL) {
-		perror("calloc()");
+		_perror("calloc()");
 		return NULL;
 	}
 
@@ -361,7 +369,7 @@ static void *network_eventloop(void *args)
 		if (j == -1) {
 			/* Error or interrupt occurred */
 			if (errno != EINTR) {
-				perror("epoll_wait()");
+				_perror("epoll_wait()");
 			}
 
 			break;
@@ -395,7 +403,7 @@ static void *network_eventloop(void *args)
 				/* Remove EPOLLOUT so that we don't receive it again */
 				if (epoll_ctl(network->epoll_fd, EPOLL_CTL_MOD,
 				              connection->socket, &event) == -1) {
-					perror("epoll_ctl()");
+					_perror("epoll_ctl()");
 					continue;
 				}
 
@@ -424,14 +432,14 @@ static void *network_eventloop(void *args)
 								break;
 							}
 
-							perror("accept()");
+							_perror("accept()");
 							break;
 						}
 
 						ptr = malloc(sizeof(*ptr));
 
 						if (ptr == NULL) {
-							perror("malloc()");
+							_perror("malloc()");
 							close(socket);
 							break;
 						}
@@ -451,7 +459,7 @@ static void *network_eventloop(void *args)
 
 						if (epoll_ctl(network->epoll_fd, EPOLL_CTL_ADD,
 						              ptr->socket, &event) == -1) {
-							perror("epoll_ctl()");
+							_perror("epoll_ctl()");
 							close(socket);
 							free(ptr);
 							break;
@@ -485,7 +493,7 @@ static void *network_eventloop(void *args)
 							}
 
 							if (errno != EAGAIN) {
-								perror("read()");
+								_perror("read()");
 								closed = 1;
 							}
 
