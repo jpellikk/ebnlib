@@ -1,33 +1,31 @@
-CFLAGS=-c -g -O0 -Wall -Wextra -pedantic -fPIC -std=gnu99 -DDEBUG
-LDFLAGS=-L. -lebnlib -lpthread
-SOURCES=ebnlib.c client.c server.c
+CFLAGS=-c -g -O0 -Wall -Wextra -pedantic -fPIC -std=gnu99 -DPTHREAD -DDEBUG -I./ebnlib -I./source
+SOURCES=$(wildcard ./source/*.c)
 OBJECTS=$(SOURCES:.c=.o)
 LIBRARY=libebnlib.a
 CC=gcc
 
 ifeq ($(COVERAGE),1)
 	CFLAGS += --coverage
-	LDFLAGS += --coverage
 endif
 
-all: $(SOURCES) ebnlib client server
+all: $(SOURCES) ebnlib tests
 
 .c.o:
 	$(CC) $(CFLAGS) $< -o $@
 
 ebnlib: $(OBJECTS)
-	ar rcs $(LIBRARY) ebnlib.o
+	ar rcs $(LIBRARY) $(OBJECTS)
 
-client: $(OBJECTS)
-	$(CC) -o $@ client.o $(LDFLAGS)
-
-server: $(OBJECTS)
-	$(CC) -o $@ server.o $(LDFLAGS)
+tests:
+	$(MAKE) -C test/utests all
+	$(MAKE) -C test/ftests all
 
 lcov:
-	lcov -d . --capture --output-file ebnlib.info
+	lcov -d ./source --capture --output-file ebnlib.info
 	genhtml -o lcov ebnlib.info
 
 clean:
-	rm -f *.a *.o *.gcno *.gcda *.info client server
-	rm -rf lcov
+	$(MAKE) -C test/utests clean
+	$(MAKE) -C test/ftests clean
+	rm -f *.a $(OBJECTS) source/*.gcno source/*.gcda *.info
+	if test -d lcov; then rm -rf lcov; fi

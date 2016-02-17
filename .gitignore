@@ -1,10 +1,16 @@
 server
 client
+timers
+utest
+.settings
 .cproject
 .project
 *.info
+.idea/
 lcov/
+logs/
 *~
+*.py?
 *.swp
 *.gcda
 *.gcno
