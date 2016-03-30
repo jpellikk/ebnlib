@@ -13,14 +13,17 @@ static network_t network;
 static connection_t connection;
 static uint8_t buffer[1024];
 
-static void event_callback(connection_t connection, const struct network_event_t *event);
+static void event_callback(connection_t connection, const struct connection_event_t *event, user_data_t network_user_data);
 
 static const struct network_attr_t network_attr = {
 	.mode = network_mode_mainloop,
-	.event_cb = event_callback,
+	.connection_event_cb = event_callback,
+	.timer_event_cb = NULL,
 	.data_buffer = buffer,
 	.buffer_len = sizeof(buffer),
-	.user_data = NULL,
+	.user_data = {
+		.ptr = NULL,
+	},
 };
 
 static const struct connection_attr_t connection_attr = {
@@ -38,14 +41,20 @@ static const struct connection_attr_t connection_attr = {
 	.mode = connection_mode_server,
 	.hostname = "::",
 	.service = "12358",
+	.src_addr = NULL,
+	.src_addrlen = 0,
+	.user_data = {
+		.ptr = NULL,
+	},
 };
 
-static void event_callback(connection_t conn, const struct network_event_t *event)
+static void event_callback(connection_t connection, const struct connection_event_t *event, user_data_t network_user_data)
 {
 	char host[NI_MAXHOST], service[NI_MAXSERV];
+	(void)network_user_data;
 
 	switch (event->event_type) {
-		case network_event_connection_accepted:
+		case connection_event_connection_accepted:
 			if (getnameinfo(event->addr, event->addr_len,
 			                host, sizeof(host), service, sizeof(service),
 			                NI_NUMERICHOST | NI_NUMERICSERV) != 0) {
@@ -56,26 +65,26 @@ static void event_callback(connection_t conn, const struct network_event_t *even
 			fprintf(stdout, "New connection: host=%s, port=%s\n", host, service);
 			break;
 
-		case network_event_data_received:
+		case connection_event_data_received:
 			fprintf(stdout, "Data received: length=%u, data=%s\n",
 			        (unsigned)event->data_len, (char *)event->data_buffer);
 			/* Send back the received data */
-			connection_send(conn, event->data_buffer, event->data_len);
+			connection_send(connection, event->data_buffer, event->data_len);
 			break;
 
-		case network_event_connection_closed:
+		case connection_event_connection_closed:
 			fprintf(stdout, "Connection closed.\n");
 			/* Free connection resources */
-			connection_free(conn);
+			connection_free(connection);
 			break;
 
-		case network_event_connection_error:
+		case connection_event_connection_error:
 			fprintf(stderr, "Connection error.\n");
 			/* Free connection resources */
-			connection_free(conn);
+			connection_free(connection);
 			break;
 
-		case network_event_connection_created:
+		case connection_event_connection_created:
 		default:
 			break;
 	};
@@ -97,6 +106,9 @@ static void terminate(int retval)
 		network_free(network);
 	}
 
+	fprintf(stdout, "Exit: %s\n",
+	        retval == EXIT_SUCCESS
+	        ? "Success" : "Failure");
 	exit(retval);
 }
 
@@ -124,9 +136,7 @@ int main(void)
 	fprintf(stdout, "Press Ctrl+c to quit.\n");
 
 	/* Run the network in the main thread until
-	 *  1) a signal interrupts the event loop, or
-	 *  2) the function network_stop() is called
-	 */
+	 * a signal interrupts the event loop */
 	if (network_start(network) == -1) {
 		terminate(EXIT_FAILURE);
 	}
